@@ -125,15 +125,8 @@ First, let's locate and open the grammar file, and then build the
 parser.
 ```python
 import lark
-from os.path import join, dirname, realpath
 
-DIR = dirname(realpath(__file__))
-GRAMMAR_FILENAME = join(DIR, "grammar.lark")
-
-with open(GRAMMAR_FILENAME) as grammar_file:
-    grammar = grammar_file.read()
-
-parser = lark.Lark(grammar)
+parser = lark.Lark.open("grammar.lark", rel_to=__file__)
 ```
 
 Then, let's load our sample program and parse it, and then we'll
@@ -692,11 +685,12 @@ transform the tree:
 ```diff
 + from . import transformer
 ...
-- parser = lark.Lark(grammar)
-+ parser = lark.Lark(
-+       grammar,
-+       parser="lalr",
-+       transformer=transformer.AlmostLispTransformer()
+- parser = ...
++ parser = lark.Lark.open(
++    "grammar.lark",
++    rel_to=__file__,
++   parser="lalr",
++   transformer=transformer.AlmostLispTransformer()
 + )
 ```
 
