@@ -1,3 +1,7 @@
+# Creating a lisp-like language in Python using Lark
+
+---
+
 # 0. LISP
 
 Lisp is a very old functional language famous for its extremely simple
@@ -640,3 +644,123 @@ Bye for now!
 ```
 
 </details>
+
+
+## 1-6. Connecting the internal representation and the parser
+
+Let's create a new file and call it `transformer.py`. We will use
+`lark.Transformer` to convert the raw tree into an _abstract syntax tree_.
+
+If you read the JSON tutorial, you should be familiar with tree transformers.
+We will use `lark.v_args(inline=True)` so that our methods will receive the
+arguments as `*args`, not as a single container argument.
+
+As we don't need to keep track of any state, we will use static method in place
+of normal methods.
+
+```py
+import lark
+import json
+from .entities import (
+    Integer, String, Name, Call
+)
+
+@lark.v_args(inline=True)
+class AlmostLispTransformer(lark.Transformer):
+    @staticmethod
+    def string(token):
+        return String(json.loads(token.value))
+
+    @staticmethod
+    def integer(token):
+        number = int(token.value)
+        return Integer(number)
+
+    @staticmethod
+    def name(identifier_token):
+        identifier = identifier_token.value
+        return Name(identifier)
+
+    @staticmethod
+    def call(fn, *args):
+        return Call(fn, *args)
+```
+
+Now let's go back to `__init__.py` and make the parser automatically
+transform the tree:
+
+```diff
++ from . import transformer
+...
+- parser = lark.Lark(grammar)
++ parser = lark.Lark(
++       grammar,
++       parser="lalr",
++       transformer=transformer.AlmostLispTransformer()
++ )
+```
+
+Now parsing something will produce a tuple of expressions. This breaks our
+REPL, so let's fix it now.
+
+```diff
+-           tree = parser.parse(command)
+-           print(tree.pretty())
++           expressions = parser.parse(command)
++           for expression in expressions:
++               print(expression)
+```
+
+This is what you should see:
+```clj
+REPL
+|> (+ 1 2)
+Call(+, Integer(1), Integer(2))
+```
+
+Now let's create a `runtime` and actually compute the expressions.
+
+#### 1. Create the runtime
+```diff
++ from .entities import BUILT_IN_NAMES
+...
+def lark_repl():
+    print("REPL")
++   runtime = dict(BUILT_IN_NAMES)
+    ...
+-           print(expression)
++           result = expression.reduce(runtime)
++           print(result)
+```
+
+This is what you should see now:
+```clj
+REPL
+|> (+ 1 2)
+3
+```
+
+We're almost done. Instead of printing "Syntax error", let's report
+the actuall error.
+
+```diff
+-       except Exception:
+-           print("Syntax error!")
++       except Exception as e:
++           print(e.__class__.__name__, e)
+```
+
+Now it's a bit more descriptive:
+```clj
+|> ()
+UnexpectedToken Unexpected token Token(RPAR, ')') at line 1, column 2.
+Expected one of:
+	* LPAR
+	* IDENTIFIER
+	* SIGNED_INT
+	* ESCAPED_STRING
+
+|> (+ "hello" 42)
+TypeError can only concatenate str (not "int") to str
+|>
+```

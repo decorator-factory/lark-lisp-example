@@ -84,6 +84,9 @@ class Call(Entity):
         evaluated_fn = self.fn.reduce(runtime)
         return evaluated_fn.call(runtime, *self.args)
 
+    def __repr__(self):
+        return f"Call({self.fn}, {', '.join(map(repr, self.args))})"
+
 
 BUILT_IN_NAMES = {}
 
