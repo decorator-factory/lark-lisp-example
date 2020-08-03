@@ -568,3 +568,75 @@ def test_square_sum():
     )
 ```
 You can write more tests if you want.
+
+
+## 1-5. Creating the REPL
+
+REPL (read-evaluate-print loop) is a popular tool in many languages, including
+Python. Our REPL will read in lines of `AlmostLisp` and output the syntax tree.
+
+Let's create `__main__.py`.
+
+```py
+from . import parser
+
+def lark_repl():
+    print("REPL")
+    while True:
+        command = input("|> ")
+
+        if command == "quit":
+            print("Bye for now!")
+            break
+
+        try:
+            tree = parser.parse(command)
+            print(tree.pretty())
+        except Exception:
+            print("Syntax error!")
+
+lark_repl()
+```
+
+Now you can run the package as a module: `python3 -m steps.lisp1`.
+
+<details>
+  <summary>REPL output</summary>
+
+```bash
+$ python3 -m steps.lisp1
+```
+```clojure
+Runing test_integers_are_final...
+Runing test_names_work...
+Runing test_nested_names_work...
+Runing test_addition...
+Runing test_subtraction...
+Runing test_square_sum...
+REPL
+|> (1)
+start
+  call
+    integer	1
+
+|> (+ 2 3)
+start
+  call
+    name	+
+    integer	2
+    integer	3
+
+|> (hello (lorem "ipsum"))
+start
+  call
+    name	hello
+    call
+      name	lorem
+      string	"ipsum"
+
+|> quit
+Bye for now!
+
+```
+
+</details>
