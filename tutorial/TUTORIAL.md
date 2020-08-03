@@ -69,10 +69,11 @@ string: ESCAPED_STRING
 ```
 
 An identifier can consist of letters, digits, and some special
-characters, but cannot start with a digit.
+characters, but cannot start with a digit or a minus and a digit
+(to prevent collsions with numbers).
 
 ```js
-IDENTIFIER: /(?![0-9])[-+*\/^?!a-zA-Z0-9]+/
+IDENTIFIER: /(?![0-9])(?!-[0-9])[-+*\/^?!a-zA-Z0-9]+/
 name: IDENTIFIER
 ```
 
@@ -430,3 +431,140 @@ def sum_of_squares(_runtime, x: Integer, y: Integer):
         Call(Name("^"), y, Integer(2)),
     )
 ```
+
+## 1-5. Testing our representations
+
+Let's write some tests for `entities.py`. We won't use any
+testing framework, so you don't need any previous knowledge for that.
+
+Create `test_entities.py` and paste this setup code:
+
+```py
+def assert_equals(a, b):
+    """if two values aren't equal, raise an error"""
+    if a != b:
+        raise AssertionError(f"{a!r} != {b!r}") from None
+
+def run_tests():
+    """Run all function whose names start with test_"""
+    for name, value in globals().items():
+        if name.startswith("test_"):
+            print(f"Runing {name}...")
+            value()
+
+### tests
+
+def test_passes():
+    assert_equals(1, 1)
+
+def test_fails():
+    assert_equals(1, 0)
+
+###
+
+run_tests()
+```
+
+running the file should give you this output:
+
+```
+Runing test_passes...
+Runing test_fails...
+Traceback (most recent call last):
+    ...
+AssertionError: 1 != 0
+```
+
+In `__init__.py`, remove the `print`-based test and add these lines:
+```py
+from . import test_entities
+```
+
+Now let's replace the stub tests with actual tests.
+
+```py
+from . import entities as e
+# ... setup code
+
+def test_integers_are_final():
+    assert_equals(
+        e.Integer(1).reduce({}),
+        e.Integer(1)
+    )
+```
+
+Now simply import the package, like this: `python3 -c "import steps.lisp01"`.
+You should get this error:
+```py
+AssertionError: Integer(1) != Integer(1)
+```
+This is expected: we didn't define equailty for `Integer`. Let's do that for
+`Integer` and `String`:
+```py
+    def __eq__(self, other):
+        if not isinstance(other, Integer):
+            return False
+        return other.value == self.value
+
+    ...
+
+    def __eq__(self, other):
+        if not isinstance(other, String):
+            return False
+        return other.value == self.value
+```
+
+Run the tests again, and there shouldn't be any errors. This means that all
+the tests pass. Now let's test variable names.
+
+```py
+def test_names_work():
+    runtime = {"answer": e.Integer(42)}
+    assert_equals(
+        e.Name("answer").reduce(runtime),
+        e.Integer(42)
+    )
+```
+
+You can "nest" names: a variable could be a reference to another name.
+
+```py
+def test_nested_names_work():
+    runtime = {"answer": e.Integer(42),
+               "universe": e.Name("answer"),
+               "everything": e.Name("universe")}
+    assert_equals(
+        e.Name("universe").reduce(runtime),
+        e.Integer(42)
+    )
+    assert_equals(
+        e.Name("everything").reduce(runtime),
+        e.Integer(42)
+    )
+```
+
+Now let's test our arithmetic functions.
+
+```py
+def test_addition():
+    runtime = dict(e.BUILT_IN_NAMES)
+    assert_equals(
+        e.Call(e.Name("+"), e.Integer(2), e.Integer(5)).reduce(runtime),
+        e.Integer(7)
+    )
+
+def test_subtraction():
+    runtime = dict(e.BUILT_IN_NAMES)
+    assert_equals(
+        e.Call(e.Name("-"), e.Integer(2), e.Integer(5)).reduce(runtime),
+        e.Integer(-3)
+    )
+
+def test_square_sum():
+    runtime = dict(e.BUILT_IN_NAMES)
+    assert_equals(
+        e.Call(e.Name("x^2+y^2"), e.Integer(2), e.Integer(5)).reduce(runtime),
+        e.Integer(29) # 2**2 + 5**2 = 4 + 25 = 29
+    )
+```
+You can write more tests if you want.

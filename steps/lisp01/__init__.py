@@ -9,16 +9,4 @@ with open(GRAMMAR_FILENAME) as grammar_file:
 
 parser = lark.Lark(grammar)
 
-PROGRAM = """
-(function 1 2 3)
-(lorem ipsum (dolor (sit amet) 4) 5)
-
-(my
-    (really
-        (nested
-            (function
-                (call)))))
-"""
-
-tree = parser.parse(PROGRAM)
-print(tree.pretty())
+from . import test_entities
