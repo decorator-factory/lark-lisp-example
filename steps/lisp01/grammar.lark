@@ -10,7 +10,7 @@ string: ESCAPED_STRING
 name: IDENTIFIER
 call: "(" expression+ ")"
 
-IDENTIFIER: /(?![0-9])[-+*\/^?!a-zA-Z0-9]+/
+IDENTIFIER: /(?![0-9])(?!-[0-9])[-+*\/^?!a-zA-Z0-9]+/
 
 %import common.SIGNED_INT
 %import common.ESCAPED_STRING
