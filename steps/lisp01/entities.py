@@ -23,6 +23,11 @@ class Integer(Entity):
     def __str__(self):
         return str(self.value)
 
+    def __eq__(self, other):
+        if not isinstance(other, Integer):
+            return False
+        return other.value == self.value
+
     def __repr__(self):
         return f"Integer({self.value})"
 
@@ -33,6 +38,11 @@ class String(Entity):
 
     def __str__(self):
         return repr(self.value)
+
+    def __eq__(self, other):
+        if not isinstance(other, String):
+            return False
+        return other.value == self.value
 
     def __repr__(self):
         return f"String({self.value})"
@@ -70,7 +80,7 @@ class Call(Entity):
         self.fn = fn
         self.args = args
 
-    def compute(self, runtime):
+    def compute_one_step(self, runtime):
         evaluated_fn = self.fn.reduce(runtime)
         return evaluated_fn.call(runtime, *self.args)
 
