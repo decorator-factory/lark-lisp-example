@@ -24,6 +24,4 @@ class AlmostLispTransformer(lark.Transformer):
         identifier = identifier_token.value
         return Name(identifier)
 
-    @staticmethod
-    def call(fn, *args):
-        return Call(fn, *args)
+    call = Call
