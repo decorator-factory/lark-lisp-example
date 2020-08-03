@@ -257,3 +257,176 @@ start
 ```
 
 </details>
+
+## 1-4. Creating runtime representations of our entities
+
+Each virtual machine-based language stores its entities
+like integers, strings, objects, functions and so on and performs
+operations on them.
+
+What entities will `AlmostLisp` have at runtime?
+
+1. Integer
+2. String
+3. Name (when evaluated, loads a global name)
+4. Function (can be called)
+5. Call (when evaluated, performs some call)
+
+To evaluate a call or a name, we will need to give tham a
+dictionary that will map names to entities. Let's create the `Entity`
+base class.
+
+The `compute_one_step` method will reduce the expression one step.
+If an entity is "final", like an Integer, it should return itself.
+The `reduce` method will reduce the expression until it's final.
+
+Since we can perform calls, let's also add a `call` method that will
+raise an error by default.
+
+```python
+class Entity:
+    def compute_one_step(self, runtime):
+        """Perform one step of computation"""
+        return self
+
+    def reduce(self, runtime):
+        """Fully reduce an expression"""
+        state = self
+        while True:
+            next_state = state.compute_one_step(runtime)
+            if next_state is state:
+                return state
+            state = next_state
+
+    def call(self, runtime, *args):
+        raise TypeError(f"Cannot call {self!r}")
+```
+
+_(`{self!r}` instead of `{self}` means that `repr` will be called on
+`self` instead of `str`)_
+
+`String`s and `Integer`s are just wrappers around Python objects.
+They evaluate to themselves. Let's also add `__str__` and `__repr__`
+methods for easier debugging.
+
+```py
+class Integer(Entity):
+    def __init__(self, value: int):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return f"Integer({self.value})"
+
+
+class String(Entity):
+    def __init__(self, value: str):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+    def __repr__(self):
+        return f"String({self.value})"
+```
+
+A _Name_ entity will reach to the runtime and grab the value we need.
+
+```python
+class Name(Entity):
+    def __init__(self, name: str):
+        self.name = name
+
+    def compute_one_step(self, runtime):
+        return runtime[self.name]
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"Name({self.name})"
+```
+
+For now, we'll only have built-in functions. A built-in function
+is a simple wrapper around a built-in function.
+`compute_one_step` for `Call`, and we get `reduce` for free.
+
+```py
+class Function(Entity):
+    def __init__(self, name: str, fn):
+        self.name = name
+        self.fn = fn
+
+    def call(self, runtime, *args):
+        evaluated_args = (arg.reduce(runtime) for arg in args)
+        return self.fn(runtime, *evaluated_args)
+
+    def __repr__(self):
+        return f"Function({self.name!r}, {self.fn!r})"
+
+
+class Call(Entity):
+    def __init__(self, fn: Entity, *args: Entity):
+        self.fn = fn
+        self.args = args
+
+    def compute_one_step(self, runtime):
+        evaluated_fn = self.fn.reduce(runtime)
+        return evaluated_fn.call(runtime, *self.args)
+```
+
+The language is pretty useless if there aren't any built-in functions.
+So let's add a few.
+
+
+```python
+BUILT_IN_NAMES = {} # name -> Entity
+
+def add(_runtime, a: Integer, b: Integer):
+    return Integer(a.value + b.value)
+BUILT_IN_NAMES["+"] = Function("+", add)
+
+def multiply(_runtime, a: Integer, b: Integer):
+    return Integer(a.value * b.value)
+BUILT_IN_NAMES["*"] = Function("*", multiply)
+```
+
+By now you're probably bored with writing an assignment every time.
+Let's make a decorator (actually a decorator factory) to
+simpify the process.
+
+```python
+def register(name: str):
+    def decorator(fn):
+        BUILT_IN_NAMES[name] = Function(name, fn)
+        return fn
+    return decorator
+```
+
+and now it's so much easier to define a new function:
+
+```python
+@register("-")
+def subtract(_runtime, a: Integer, b: Integer):
+    return Integer(a.value - b.value)
+
+@register("^")
+def power(_runtime, a: Integer, b: Integer):
+    return Integer(a.value ** b.value)
+```
+
+If you haven't heard of decorators in Python, check out [this article by Real Python](https://realpython.com/primer-on-python-decorators/).
+
+Let's define a function called `x^2+y^2` that will
+return a sum of squares of given integers.
+```python
+@register("x^2+y^2")
+def sum_of_squares(_runtime, x: Integer, y: Integer):
+    return Call(
+        Name("+"),
+        Call(Name("^"), x, Integer(2)),
+        Call(Name("^"), y, Integer(2)),
+    )
+```
