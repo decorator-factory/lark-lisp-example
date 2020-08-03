@@ -1,9 +1,9 @@
 start: expression+
 
-expression: integer
-          | string
-          | name
-          | call
+?expression: integer
+           | string
+           | name
+           | call
 
 integer: SIGNED_INT
 string: ESCAPED_STRING
