@@ -741,7 +741,7 @@ REPL
 ```
 
 We're almost done. Instead of printing "Syntax error", let's report
-the actuall error.
+the actual error.
 
 ```diff
 -       except Exception:
