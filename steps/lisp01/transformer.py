@@ -1,11 +1,11 @@
-import lark
+from lark import Transformer, v_args
 import json
 from .entities import (
     Integer, String, Name, Call
 )
 
-@lark.v_args(inline=True)
-class AlmostLispTransformer(lark.Transformer):
+@v_args(inline=True)
+class AlmostLispTransformer(Transformer):
     @staticmethod
     def start(*expressions):
         return expressions

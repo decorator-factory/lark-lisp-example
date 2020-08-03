@@ -15,7 +15,48 @@ Let's call our language `AlmostLisp`.
 
 # 1. Basic version of `AlmostLisp`
 
-## 1-1. Syntax of our language
+## 0-1. The roadmap
+
+These are the steps you can take to implement the language:
+
+### 1. Decide on the language _semantics_
+What constitutes a part of the language and how to evaluate these parts
+in order to get the result?
+
+### 2. Decide on the language _syntax_
+How to represent things in our language using text?
+
+### 3. Implement the grammar
+Make sure it's unambiguous or that these ambiguities can be resolved.
+For example, in Python, `{1, 2}` is a set and `{1: 2}` is a dictionary, but
+`{}` was decided to be an empty dictionary because they are used way
+more often than sets.
+
+### 4. Implement the internal representation
+Implement how the parts of the language interact internally. First, you
+construct an _abstract syntax tree_. It's a tree structure that represents
+the program source. For example, `2 + 3*5` can be represented as:
+```
+          sum
+     /           \
+  number(2)    product
+              /       \
+         number(3)  number(5)
+    
+```
+Then, you either run the program using just the AST (you might call your
+implementation an _interpreter_. Or you can compile the program to a
+lower-level representation like machine code or byte code that can be
+run in a _virtual machine_ -- then you're implementing a _compiler_.
+
+For example, C and Haskell can be compiled directly to machine code, and
+both Python and Java are compiled to bytecode. But our language will be
+interpreted.
+
+
+
+
+## 1-1. Semantics and syntax of our language
 
 Each program in `AlmostLisp` is a sequence of expressions. To execute
 a program, a virtual machine will execute each expression step-by-step.
