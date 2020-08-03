@@ -12,6 +12,10 @@ class Entity:
                 return state
             state = next_state
 
+    def call(self, runtime, *args):
+        raise TypeError(f"Cannot call {self!r}")
+
+
 class Integer(Entity):
     def __init__(self, value: int):
         self.value = value
